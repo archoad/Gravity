@@ -27,7 +27,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.*/
 #include <GL/glu.h>
 #include <GL/glut.h>
 
-#define WINDOW_TITLE_PREFIX "Gravity simulation"
+#define WINDOW_TITLE_PREFIX "Universe simulation"
 #define couleur(param) printf("\033[%sm",param)
 #define PI 3.14159265359
 #define G 6.67428e-11
@@ -93,7 +93,7 @@ void usage(void) {
 	couleur("31");
 	printf("Michel Dubois -- universe3d -- (c) 2013\n\n");
 	couleur("0");
-	printf("Syntaxe: universe3d <filename> <background color> <color type>\n");
+	printf("Syntaxe: universe3d <background color>\n");
 	printf("\t<background color> -> 'white' or 'black'\n");
 }
 
@@ -565,6 +565,7 @@ void glmain(int argc, char *argv[]) {
 	glutTimerFunc(dt, onTimer, 0);
 	glutTimerFunc(dt*4, update, sampleSize);
 	fprintf(stdout, "INFO: OpenGL Version: %s\n", glGetString(GL_VERSION));
+	fprintf(stdout, "INFO: Screen size (%d, %d)\n", glutGet(GLUT_SCREEN_WIDTH), glutGet(GLUT_SCREEN_HEIGHT));
 	fprintf(stdout, "INFO: Nbr elts: %d\n", sampleSize);
 	glutMainLoop();
 	glDeleteLists(textList, 1);

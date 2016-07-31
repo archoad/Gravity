@@ -93,7 +93,7 @@ void usage(void) {
 	couleur("31");
 	printf("Michel Dubois -- gravity3d -- (c) 2013\n\n");
 	couleur("0");
-	printf("Syntaxe: gravity3d <filename> <background color> <color type>\n");
+	printf("Syntaxe: gravity3d <background color>n");
 	printf("\t<background color> -> 'white' or 'black'\n");
 }
 
@@ -550,6 +550,7 @@ void glmain(int argc, char *argv[]) {
 	glutTimerFunc(dt, onTimer, 0);
 	glutTimerFunc(dt*4, update, sampleSize);
 	fprintf(stdout, "INFO: OpenGL Version: %s\n", glGetString(GL_VERSION));
+	fprintf(stdout, "INFO: Screen size (%d, %d)\n", glutGet(GLUT_SCREEN_WIDTH), glutGet(GLUT_SCREEN_HEIGHT));
 	fprintf(stdout, "INFO: Nbr elts: %d\n", sampleSize);
 	glutMainLoop();
 	glDeleteLists(textList, 1);

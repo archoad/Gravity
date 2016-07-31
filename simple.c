@@ -340,6 +340,7 @@ void glmain(int argc, char *argv[]) {
 	glutKeyboardFunc(onKeyboard);
 	glutTimerFunc(dt, onTimer, 0);
 	fprintf(stdout, "INFO: OpenGL Version: %s\n", glGetString(GL_VERSION));
+	fprintf(stdout, "INFO: Screen size (%d, %d)\n", glutGet(GLUT_SCREEN_WIDTH), glutGet(GLUT_SCREEN_HEIGHT));
 	glutMainLoop();
 }
 

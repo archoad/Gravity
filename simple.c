@@ -29,7 +29,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.*/
 
 #define WINDOW_TITLE_PREFIX "Simple OpenGL program"
 #define couleur(param) printf("\033[%sm",param)
-#define BUFSIZE 512
 
 static short winSizeW = 920,
 	winSizeH = 690,
@@ -88,9 +87,9 @@ void takeScreenshot(char *filename) {
 }
 
 
-void drawSphere(void) {
+void drawSphere(float x, float y, float z) {
 	glPushMatrix();
-	glTranslatef(10.0, 11.0, 12.0);
+	glTranslatef(x, y, z);
 	glColor3f(0.1, 0.5, 06);
 	glutSolidSphere(5.0, 16, 16);
 	glPopMatrix();
@@ -119,7 +118,8 @@ void display(void) {
 	glRotatef(roty, 0.0, 1.0, 0.0);
 	glRotatef(rotz, 0.0, 0.0, 1.0);
 	if (axe) { drawAxes(); }
-	drawSphere();
+	drawSphere(10.0, 2.0, 5.0);
+	drawSphere(-10.0, 2.0, 5.0);
 	glPopMatrix();
 
 	glutSwapBuffers();
@@ -292,7 +292,7 @@ void onTimer(int event) {
 
 
 void init(void) {
-	glClearColor(0.1, 0.1, 0.1, 1.0);
+	glClearColor(0.1, 0.1, 0.1, 1.0); // background color
 
 	GLfloat position[] = {0.0, 0.0, 0.0, 1.0};
 	glLightfv(GL_LIGHT0, GL_POSITION, position);

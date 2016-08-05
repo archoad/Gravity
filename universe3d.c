@@ -43,14 +43,14 @@ static short winSizeW = 920,
 	allTraces = 0,
 	rotate = 0,
 	axe = 1,
-	concentration = 5,
+	concentration = 12,
 	dt = 5; // in milliseconds
 
 static int textList = 0,
 	cpt = 0,
 	background = 0,
 	pathLength = 0,
-	sampleSize = 500;
+	sampleSize = 1000;
 
 static float fps = 0.0,
 	rotx = -80.0,
@@ -58,7 +58,7 @@ static float fps = 0.0,
 	rotz = 20.0,
 	xx = 0.0,
 	yy = 5.0,
-	zoom = 200.0,
+	zoom = 300.0,
 	prevx = 0.0,
 	prevy = 0.0;
 
@@ -72,7 +72,7 @@ typedef struct _planet {
 	vector velocity;
 	vector force;
 	vector *path;
-	float radius;
+	double radius;
 	double mass;
 	int id;
 	short selected;
@@ -82,9 +82,9 @@ typedef struct _planet {
 
 static planet *planetsList = NULL;
 
-static double maxWeight = 1.0e16,
-	minWeight = 1.0e4,
-	density = 1.0e9;
+static double maxWeight = 2.0e9,
+	minWeight = 1.0e2,
+	density = 1.0e8;
 
 
 
@@ -126,9 +126,9 @@ char* displayPlanet(planet p, int simple) {
 	char *text = NULL;
 	text = calloc(120, sizeof(text));
 	if (simple) {
-		sprintf(text, "[%d] coord: (%.2f, %.2f, %.2f) mass: %15.2f radius: %.6f", p.id, p.pos.x, p.pos.y, p.pos.z, p.mass, p.radius);
+		sprintf(text, "[%d] coord: (%.2f, %.2f, %.2f) mass: %.6f radius: %.6f", p.id, p.pos.x, p.pos.y, p.pos.z, p.mass, p.radius);
 	} else {
-		sprintf(text, "[%d] \t coord: (%.2f, %.2f, %.2f) \t color: (%.2f, %.2f, %.2f) \t velocity: (%.2f, %.2f, %.2f) \t mass: %15.2f \t radius: %.6f\n", p.id, p.pos.x, p.pos.y, p.pos.z, p.color.x, p.color.y, p.color.z, p.velocity.x, p.velocity.y, p.velocity.z, p.mass, p.radius);
+		sprintf(text, "[%d] \t coord: (%.2f, %.2f, %.2f) \t color: (%.2f, %.2f, %.2f) \t velocity: (%.2f, %.2f, %.2f) \t mass: %.6f \t radius: %.6f\n", p.id, p.pos.x, p.pos.y, p.pos.z, p.color.x, p.color.y, p.color.z, p.velocity.x, p.velocity.y, p.velocity.z, p.mass, p.radius);
 	}
 	return(text);
 }
@@ -180,9 +180,9 @@ void drawString(float x, float y, float z, char *text) {
 
 
 void drawText(void) {
-	char text1[50], text2[70], text3[120];
 	int i = 0;
-	sprintf(text1, "Nbr elts: %d", sampleSize);
+	char text1[50], text2[70], text3[120];
+	sprintf(text1, "Nbr of planets: %d", sampleSize);
 	sprintf(text2, "dt: %1.3f, FPS: %4.2f", (dt/1000.0), fps);
 	for (i=0; i<sampleSize; i++) {
 		if (planetsList[i].selected) {
@@ -269,7 +269,8 @@ void selectObject(x, y) {
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
-	gluPickMatrix(x, y, 2.0, 2.0, viewPort);
+	glGetIntegerv(GL_VIEWPORT, viewPort);
+	gluPickMatrix(x, y, 1.0, 1.0, viewPort);
 	gluPerspective(45.0, 1.0, 1.0, 1000.0);
 	glMatrixMode(GL_MODELVIEW);
 	glutSwapBuffers();
@@ -462,8 +463,13 @@ void onTimer(int event) {
 
 
 void update(int value) {
+	/* source: https://en.wikipedia.org/wiki/Kepler%27s_laws_of_planetary_motion
+		paragraph: Newton's law of gravitation
+	*/
+
 	int p1=0, p2=0;
-	float dx=0, dy=0, dz=0, d=0, f=0, radiusSum=0;
+	float dx=0, dy=0, dz=0, d=0, f=0;
+	double radiusSum=0;
 	vector a;
 
 	pathLength ++;
@@ -479,26 +485,17 @@ void update(int value) {
 				if (d < radiusSum) { d = radiusSum; }
 
 				// computes force attraction
-				f = G * planetsList[p1].mass * planetsList[p2].mass / (d*d);
+				f = G * planetsList[p2].mass / (d*d);
+				// compute acceleration
 				a.x = f * dx/d;
 				a.y = f * dy/d;
 				a.z = f * dz/d;
 
-				planetsList[p1].force.x += a.x;
-				planetsList[p1].force.y += a.y;
-				planetsList[p1].force.z += a.z;
-
-				planetsList[p2].force.x -= a.x;
-				planetsList[p2].force.y -= a.y;
-				planetsList[p2].force.z -= a.z;
+				planetsList[p1].velocity.x += a.x;
+				planetsList[p1].velocity.y += a.y;
+				planetsList[p1].velocity.z += a.z;
 			}
 		}
-
-		// computes acceleration (F = m*a -> a = F/m)
-		planetsList[p1].velocity.x = planetsList[p1].force.x / planetsList[p1].mass;
-		planetsList[p1].velocity.y = planetsList[p1].force.y / planetsList[p1].mass;
-		planetsList[p1].velocity.z = planetsList[p1].force.z / planetsList[p1].mass;
-
 		planetsList[p1].pos.x += planetsList[p1].velocity.x/100.0;
 		planetsList[p1].pos.y += planetsList[p1].velocity.y/100.0;
 		planetsList[p1].pos.z += planetsList[p1].velocity.z/100.0;
@@ -599,6 +596,7 @@ double generateRangeRandom(double min, double max) {
 
 void populatePlanets(void) {
 	int i = 0;
+	float theta = sqrt(2) / 2.0;
 	planetsList = (planet*)calloc(sampleSize, sizeof(planet));
 	if (planetsList == NULL) {
 		printf("### ERROR planetsList\n");
@@ -614,8 +612,8 @@ void populatePlanets(void) {
 		planetsList[i].pos.x = generateIntRandom();
 		planetsList[i].pos.y = generateIntRandom();
 		planetsList[i].pos.z = generateIntRandom();
-		planetsList[i].velocity.x = generateFloatRandom();
-		planetsList[i].velocity.y = generateFloatRandom();
+		planetsList[i].velocity.x = planetsList[i].pos.x * cos(theta) - planetsList[i].pos.y * sin(theta);
+		planetsList[i].velocity.y = planetsList[i].pos.x * sin(theta) + planetsList[i].pos.y * cos(theta);
 		planetsList[i].velocity.z = generateFloatRandom();
 		planetsList[i].path = calloc(1, sizeof(vector));
 		planetsList[i].path[pathLength] = planetsList[i].pos;

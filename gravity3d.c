@@ -93,7 +93,7 @@ void usage(void) {
 	couleur("31");
 	printf("Michel Dubois -- gravity3d -- (c) 2013\n\n");
 	couleur("0");
-	printf("Syntaxe: gravity3d <background color>n");
+	printf("Syntaxe: gravity3d <background color>\n");
 	printf("\t<background color> -> 'white' or 'black'\n");
 }
 
@@ -267,7 +267,8 @@ void selectObject(x, y) {
 	glMatrixMode(GL_PROJECTION);
 	glPushMatrix();
 	glLoadIdentity();
-	gluPickMatrix(x, y, 2.0, 2.0, viewPort);
+	glGetIntegerv(GL_VIEWPORT, viewPort);
+	gluPickMatrix(x, y, 1.0, 1.0, viewPort);
 	gluPerspective(45.0, 1.0, 1.0, 1000.0);
 	glMatrixMode(GL_MODELVIEW);
 	glutSwapBuffers();

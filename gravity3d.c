@@ -456,7 +456,7 @@ void onTimer(int event) {
 	}
 	if (rotz > 360) rotz = 360;
 	glutPostRedisplay();
-	glutTimerFunc(dt, onTimer, 1);
+	glutTimerFunc(dt, onTimer, 0);
 }
 
 
@@ -464,8 +464,8 @@ void update(int value) {
 	int i=0;
 	float limit=25.0, dtms=0.0, friction=0.85, gravity=9.81;
 
-	prevx = 0;
-	prevy = 0;
+	prevx = 0.0;
+	prevy = 0.0;
 	dtms = dt/250.0;
 	pathLength ++;
 	for (i=0; i<value; i++) {

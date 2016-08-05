@@ -25,7 +25,7 @@ MATH_FLAGS= -lm
 PNG_FLAGS= -lpng
 GMP_FLAGS= -lgmp
 
-all: dest_sys gravity3d universe3d simple
+all: dest_sys gravity3d universe3d
 
 gravity3d: gravity3d.c
 	$(COMPIL) $(CFLAGS) $(IFLAGSDIR) $(LFLAGSDIR) $(MATH_FLAGS) $(GL_FLAGS) $(PNG_FLAGS) $< -o $@
@@ -35,14 +35,9 @@ universe3d: universe3d.c
 	$(COMPIL) $(CFLAGS) $(IFLAGSDIR) $(LFLAGSDIR) $(MATH_FLAGS) $(GL_FLAGS) $(PNG_FLAGS) $< -o $@
 	@$(STRIP) $@
 
-simple: simple.c
-	$(COMPIL) $(CFLAGS) $(IFLAGSDIR) $(LFLAGSDIR) $(MATH_FLAGS) $(GL_FLAGS) $(PNG_FLAGS) $< -o $@
-	@$(STRIP) $@
-
 dest_sys:
 	@echo "Destination system:" $(UNAME_S)
 
 clean:
 	@rm -f gravity3d
 	@rm -f universe3d
-	@rm -f simple

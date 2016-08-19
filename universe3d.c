@@ -29,8 +29,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.*/
 
 #define WINDOW_TITLE_PREFIX "Universe simulation"
 #define couleur(param) printf("\033[%sm",param)
-#define PI 3.14159265359
-#define G 6.67428e-11
 #define BUFSIZE 512
 
 static short winSizeW = 920,
@@ -63,7 +61,7 @@ static float fps = 0.0,
 	prevy = 0.0;
 
 typedef struct _vector {
-	float x, y, z;
+	double x, y, z;
 } vector;
 
 typedef struct _planet {
@@ -84,7 +82,9 @@ static planet *planetsList = NULL;
 
 static double maxWeight = 2.0e9,
 	minWeight = 1.0e2,
-	density = 1.0e8;
+	density = 1.0e8,
+	pi = 3.14159265358979323846,
+	g = 6.67428e-11;
 
 
 
@@ -95,6 +95,28 @@ void usage(void) {
 	couleur("0");
 	printf("Syntaxe: universe3d <background color>\n");
 	printf("\t<background color> -> 'white' or 'black'\n");
+}
+
+
+void help(void) {
+	couleur("31");
+	printf("Michel Dubois -- universe3d -- (c) 2013\n\n");
+	couleur("0");
+	printf("Key usage:\n");
+	printf("\t'ESC' key to quit\n");
+	printf("\t'UP', 'DOWN', 'LEFT' and 'RIGHT' keys to rotate manually\n");
+	printf("\t'r' to rotate continuously\n");
+	printf("\t'x' and 'X' to move to right and left\n");
+	printf("\t'y' and 'Y' to move to top and bottom\n");
+	printf("\t'z' and 'Z' to zoom in or out\n");
+	printf("\t'f' to switch to full screen\n");
+	printf("\t'p' to take a screenshot\n");
+	printf("\t'd' to display axe or not\n");
+	printf("\t't' to display selected planet trace or not\n");
+	printf("\t'a' to display trace of all planets\n");
+	printf("Mouse usage:\n");
+	printf("\t'LEFT CLICK' to to select a planet\n");
+	printf("\n");
 }
 
 
@@ -216,6 +238,7 @@ void display(void) {
 
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+
 	drawText();
 	glCallList(textList);
 
@@ -224,6 +247,17 @@ void display(void) {
 	glRotatef(rotx, 1.0, 0.0, 0.0);
 	glRotatef(roty, 0.0, 1.0, 0.0);
 	glRotatef(rotz, 0.0, 0.0, 1.0);
+
+	GLfloat ambient1[] = {0.15f, 0.15f, 0.15f, 1.0f};
+	GLfloat diffuse1[] = {0.8f, 0.8f, 0.8f, 1.0f};
+	GLfloat specular1[] = {1.0f, 1.0f, 1.0f, 1.0f};
+	GLfloat position1[] = {0.0f, 0.0f, 20.0f, 1.0f};
+	glLightfv(GL_LIGHT1, GL_AMBIENT, ambient1);
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse1);
+	glLightfv(GL_LIGHT1, GL_DIFFUSE, specular1);
+	glLightfv(GL_LIGHT1, GL_POSITION, position1);
+	glEnable(GL_LIGHT1);
+
 	if (axe) { drawAxes(); }
 	for (i=0; i<sampleSize; i++) {
 		if (planetsList[i].displayed) {
@@ -468,7 +502,7 @@ void update(int value) {
 	*/
 
 	int p1=0, p2=0;
-	float dx=0, dy=0, dz=0, d=0, f=0;
+	double dx=0, dy=0, dz=0, d=0, f=0;
 	double radiusSum=0;
 	vector a;
 
@@ -487,7 +521,7 @@ void update(int value) {
 				if (d < radiusSum) { d = radiusSum; }
 
 				// computes force attraction
-				f = G * planetsList[p2].mass / (d*d);
+				f = g * planetsList[p2].mass / (d*d);
 				// compute acceleration
 				a.x = f * dx/d;
 				a.y = f * dy/d;
@@ -517,29 +551,35 @@ void init(void) {
 		glClearColor(0.1, 0.1, 0.1, 1.0);
 	}
 
-	GLfloat position[] = {0.0, 0.0, 0.0, 1.0};
-	glLightfv(GL_LIGHT0, GL_POSITION, position);
-
-	GLfloat modelAmbient[] = {0.5, 0.5, 0.5, 1.0};
-	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, modelAmbient);
-
 	glEnable(GL_LIGHTING);
+
+	GLfloat ambient[] = {0.05f, 0.05f, 0.05f, 1.0f};
+	GLfloat diffuse[] = {0.8f, 0.8f, 0.8f, 1.0f};
+	GLfloat specular[] = {1.0f, 1.0f, 1.0f, 1.0f};
+	GLfloat position[] = {0.0f, 0.0f, 0.0f, 1.0f};
+	glLightfv(GL_LIGHT0, GL_AMBIENT, ambient);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, specular);
+	glLightfv(GL_LIGHT0, GL_POSITION, position);
 	glEnable(GL_LIGHT0);
+
 	glEnable(GL_COLOR_MATERIAL);
 	glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
+	GLfloat matAmbient[] = {0.3f, 0.3f, 0.3f, 1.0f};
+	GLfloat matDiffuse[] = {0.6f, 0.6f, 0.6f, 1.0f};
+	GLfloat matSpecular[] = {0.8f, 0.8f, 0.8f, 1.0f};
+	GLfloat matShininess[] = {128.0f};
+	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, matAmbient);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, matDiffuse);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, matSpecular);
+	glMaterialfv(GL_FRONT_AND_BACK, GL_SHININESS, matShininess);
+
+	GLfloat baseAmbient[] = {0.5f, 0.5f, 0.5f, 0.5f};
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, baseAmbient);
+	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
 
 	glShadeModel(GL_SMOOTH);
 	glEnable(GL_DEPTH_TEST);
-
-	GLfloat no_mat[] = {0.0, 0.0, 0.0, 1.0};
-	GLfloat mat_diffuse[] = {0.1, 0.5, 0.8, 1.0};
-	GLfloat mat_specular[] = {1.0, 1.0, 1.0, 1.0};
-	GLfloat shininess[] = {128.0};
-	glMaterialfv(GL_FRONT, GL_AMBIENT, no_mat);
-	glMaterialfv(GL_FRONT, GL_DIFFUSE, mat_diffuse);
-	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
-	glMaterialfv(GL_FRONT, GL_SHININESS, shininess);
-	glMaterialfv(GL_FRONT, GL_EMISSION, no_mat);
 
 	glEnable(GL_NORMALIZE);
 	glEnable(GL_AUTO_NORMAL);
@@ -598,7 +638,7 @@ double generateRangeRandom(double min, double max) {
 
 void populatePlanets(void) {
 	int i = 0;
-	float theta = sqrt(2) / 2.0;
+	double theta = sqrt(2) / 2.0;
 	planetsList = (planet*)calloc(sampleSize, sizeof(planet));
 	if (planetsList == NULL) {
 		printf("### ERROR planetsList\n");
@@ -620,7 +660,7 @@ void populatePlanets(void) {
 		planetsList[i].path = calloc(1, sizeof(vector));
 		planetsList[i].path[pathLength] = planetsList[i].pos;
 		planetsList[i].mass = generateRangeRandom(minWeight, maxWeight);
-		planetsList[i].radius = pow(((3.0 * planetsList[i].mass) / (4.0 * PI * density)), (1.0/3.0));
+		planetsList[i].radius = pow(((3.0 * planetsList[i].mass) / (4.0 * pi * density)), (1.0/3.0));
 	}
 }
 
@@ -631,6 +671,7 @@ int main(int argc, char *argv[]) {
 			if (!strncmp(argv[1], "white", 5)) {
 				background = 1;
 			}
+			help();
 			srand(time(NULL));
 			populatePlanets();
 			glmain(argc, argv);

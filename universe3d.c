@@ -23,13 +23,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.*/
 #include <math.h>
 #include <png.h>
 
-#include <GL/gl.h>
-#include <GL/glu.h>
-#include <GL/glut.h>
+#include <GL/freeglut.h>
 
 #define WINDOW_TITLE_PREFIX "Universe simulation"
 #define couleur(param) printf("\033[%sm",param)
 #define BUFSIZE 512
+#define MAXPLANET 500000
 
 static short winSizeW = 920,
 	winSizeH = 690,
@@ -78,7 +77,7 @@ typedef struct _planet {
 } planet;
 
 
-static planet *planetsList = NULL;
+static planet planetsList[MAXPLANET];
 
 static double maxWeight = 2.0e9,
 	minWeight = 1.0e2,
@@ -165,19 +164,22 @@ void drawPlanet(planet p, int name) {
 	}
 	glColor3f(p.color.x, p.color.y, p.color.z);
 	glLoadName(name);
-	glutSolidSphere(p.radius, 12, 12);
+	//glPointSize(5*p.radius);
+	//glBegin(GL_POINTS);
+		//glVertex3f(p.pos.x, p.pos.y, p.pos.z);
+	//glEnd();
+	glutSolidSphere(p.radius, 6, 6);
 	glPopMatrix();
 }
 
 
 void drawPath(planet p) {
 	int pos = 0;
-	glPointSize(1.0);
+	glPointSize(0.5f);
 	glColor3f(p.color.x, p.color.y, p.color.z);
 	for (pos=0; pos<pathLength; pos++) {
 		glBegin(GL_POINTS);
-		glNormal3f(p.path[pos].x, p.path[pos].y, p.path[pos].z);
-		glVertex3f(p.path[pos].x, p.path[pos].y, p.path[pos].z);
+			glVertex3f(p.path[pos].x, p.path[pos].y, p.path[pos].z);
 		glEnd();
 	}
 }
@@ -235,7 +237,6 @@ void drawAxes(void) {
 void display(void) {
 	int i=0;
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 
@@ -404,9 +405,9 @@ void onKeyboard(unsigned char key, int x, int y) {
 	int i = 0;
 	switch (key) {
 		case 27: // Escape
-			printf("INFO: exit\n");
 			printf("x %d, y %d\n", x, y);
-			exit(0);
+			printf("INFO: exit loop\n");
+			glutLeaveMainLoop();
 			break;
 		case 'x':
 			xx += 1.0;
@@ -578,22 +579,30 @@ void init(void) {
 	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, baseAmbient);
 	glLightModeli(GL_LIGHT_MODEL_LOCAL_VIEWER, GL_TRUE);
 
-	glShadeModel(GL_SMOOTH);
-	glEnable(GL_DEPTH_TEST);
+	// points smoothing
+	glEnable(GL_POINT_SMOOTH);
+	glHint(GL_POINT_SMOOTH_HINT, GL_NICEST);
 
-	glEnable(GL_NORMALIZE);
-	glEnable(GL_AUTO_NORMAL);
+	//needed for transparency
+	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glShadeModel(GL_SMOOTH); // smooth shading
+	glEnable(GL_NORMALIZE); // recalc normals for non-uniform scaling
+	glEnable(GL_AUTO_NORMAL);
+
+	glEnable(GL_CULL_FACE); // do not render back-faces, faster
 }
 
 
 void glmain(int argc, char *argv[]) {
 	glutInit(&argc, argv);
+	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
 	glutInitWindowSize(winSizeW, winSizeH);
 	glutInitWindowPosition(120, 10);
-	glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
 	glutCreateWindow(WINDOW_TITLE_PREFIX);
-	init();
 	glutDisplayFunc(display);
 	glutReshapeFunc(onReshape);
 	glutSpecialFunc(onSpecial);
@@ -603,10 +612,12 @@ void glmain(int argc, char *argv[]) {
 	glutKeyboardFunc(onKeyboard);
 	glutTimerFunc(dt, onTimer, 0);
 	glutTimerFunc(dt*4, update, sampleSize);
+	init();
 	fprintf(stdout, "INFO: OpenGL Version: %s\n", glGetString(GL_VERSION));
 	fprintf(stdout, "INFO: Screen size (%d, %d)\n", glutGet(GLUT_SCREEN_WIDTH), glutGet(GLUT_SCREEN_HEIGHT));
 	fprintf(stdout, "INFO: Nbr elts: %d\n", sampleSize);
 	glutMainLoop();
+	fprintf(stdout, "INFO: Freeing memory\n");
 	glDeleteLists(textList, 1);
 }
 
@@ -639,11 +650,6 @@ double generateRangeRandom(double min, double max) {
 void populatePlanets(void) {
 	int i = 0;
 	double theta = sqrt(2) / 2.0;
-	planetsList = (planet*)calloc(sampleSize, sizeof(planet));
-	if (planetsList == NULL) {
-		printf("### ERROR planetsList\n");
-		exit(EXIT_FAILURE);
-	}
 	for (i=0; i<sampleSize; i++) {
 		planetsList[i].id = i;
 		planetsList[i].selected = 0;

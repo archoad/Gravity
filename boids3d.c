@@ -1,5 +1,5 @@
-/*gravity3d
-Copyright (C) 2013 Michel Dubois
+/*boids3d
+Copyright (C) 2021 Michel Dubois
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -15,6 +15,13 @@ You should have received a copy of the GNU General Public License
 along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.*/
 
+/* Sources:
+- http://www.red3d.com/cwr/objects/
+- http://www.vergenet.net/~conrad/objects/pseudocode.html
+- https://github.com/beneater/objects
+- https://github.com/gpolo/birdflocking
+- https://github.com/roholazandie/objects/
+*/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -27,7 +34,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301, USA.*/
 #include <GL/glu.h>
 #include <GL/glut.h>
 
-#define WINDOW_TITLE_PREFIX "Gravity simulation"
+#define WINDOW_TITLE_PREFIX "boids simulation"
 #define couleur(param) printf("\033[%sm",param)
 #define BUFSIZE 512
 #define MAXOBJECTS 5000
@@ -42,7 +49,7 @@ static short winSizeW = 1200,
 	allTraces = 1,
 	rotate = 1,
 	axe = 1,
-	concentration = 100,
+	concentration = 150,
 	dt = 5; // in milliseconds
 
 static int textList = 0,
@@ -62,13 +69,12 @@ static float fps = 0.0,
 	prevx = 0.0,
 	prevy = 0.0;
 
-static double minDistance = 4.0,
-	maxSpeed = 2.0,
-	maxWeight = 1.0e10,
-	minWeight = 1.0e6,
-	density = 1.0e8,
-	pi = 3.14159265358979323846,
-	g = 6.67428e-11;
+static double minPerception = 25.0,
+	minDistance = 4.0,
+	separateFactor = 0.1,
+	cohesionFactor = 0.01,
+	alignFactor = 0.01,
+	maxSpeed = 2.0;
 
 typedef struct _vector {
 	double x, y, z;
@@ -92,20 +98,18 @@ static objects objectsList[MAXOBJECTS];
 
 
 
-
-
 void usage(void) {
 	couleur("31");
-	printf("Michel Dubois -- gravity3d -- (c) 2013\n\n");
+	printf("Michel Dubois -- boids3d -- (c) 2021\n\n");
 	couleur("0");
-	printf("Syntaxe: gravity3d <background color>\n");
+	printf("Syntaxe: boids3d <background color>\n");
 	printf("\t<background color> -> 'white' or 'black'\n");
 }
 
 
 void help(void) {
 	couleur("31");
-	printf("Michel Dubois -- gravity3d -- (c) 2013\n\n");
+	printf("Michel Dubois -- boids3d -- (c) 2021\n\n");
 	couleur("0");
 	printf("Key usage:\n");
 	printf("\t'ESC' key to quit\n");
@@ -117,10 +121,10 @@ void help(void) {
 	printf("\t'f' to switch to full screen\n");
 	printf("\t'p' to take a screenshot\n");
 	printf("\t'd' to display axe or not\n");
-	printf("\t't' to display selected planet trace or not\n");
-	printf("\t'a' to display trace of all planets\n");
+	printf("\t't' to display selected boid trace or not\n");
+	printf("\t'a' to display trace of all boids\n");
 	printf("Mouse usage:\n");
-	printf("\t'LEFT CLICK' to to select a planet\n");
+	printf("\t'LEFT CLICK' to to select a boid\n");
 	printf("\n");
 }
 
@@ -592,10 +596,86 @@ void onTimer(int event) {
 }
 
 
-vector freeFall(int p1) {
-	vector result;
-	result.x=0.0; result.y=0.0; result.z=0.0;
-	return(result);
+vector separation(int o1) {
+	// Rule1: steer to avoid crowding local flockmates
+	int o2 = 0,
+		numNeighbors = 0;
+	double dist = 0.0;
+	vector steer, diff;
+	steer.x=0.0; steer.y=0.0; steer.z=0.0;
+	for (o2=0; o2<sampleSize; o2++) {
+		dist = distance(objectsList[o1], objectsList[o2]);
+		if ((dist > 0) & (dist < minDistance)) {
+			diff = subVec(objectsList[o1].pos, objectsList[o2].pos);
+			diff = normalize(diff);
+			diff = divVecByScalar(diff, dist);
+			steer = addVec(steer, diff);
+			numNeighbors++;
+		}
+	}
+	if (numNeighbors) {
+		steer = divVecByScalar(steer, numNeighbors);
+	}
+	if (magnitude(steer) > 0) {
+		steer = normalize(steer);
+		steer = mulVecByScalar(steer, maxSpeed);
+		steer = subVec(steer, objectsList[o1].velocity);
+		steer = limitForce(steer, separateFactor);
+	}
+	return(steer);
+}
+
+
+vector alignement(int o1) {
+	// Rule2: steer towards the average heading of local flockmates
+	int o2 = 0,
+		numNeighbors = 0;
+	double dist = 0;
+	vector steer, sum;
+	steer.x=0.0; steer.y=0.0; steer.z=0.0;
+	sum.x=0.0; sum.y=0.0; sum.z=0.0;
+	for (o2=0; o2<sampleSize; o2++) {
+		dist = distance(objectsList[o1], objectsList[o2]);
+		if ((dist > 0) & (dist < minPerception)) {
+			sum = addVec(sum, objectsList[o2].velocity);
+			numNeighbors++;
+		}
+	}
+	if (numNeighbors) {
+		sum = divVecByScalar(sum, numNeighbors);
+		sum = normalize(sum);
+		sum = mulVecByScalar(sum, maxSpeed);
+		steer = subVec(sum, objectsList[o1].velocity);
+		steer = limitForce(steer, alignFactor);
+	}
+	return(steer);
+}
+
+
+vector cohesion(int o1) {
+	// Rule3: Steer to move towards the average position (center of mass) of local flockmates
+	int o2 = 0,
+		numNeighbors = 0;
+	double dist = 0;
+	vector steer, sum;
+	steer.x=0.0; steer.y=0.0; steer.z=0.0;
+	sum.x=0.0; sum.y=0.0; sum.z=0.0;
+	for (o2=0; o2<sampleSize; o2++) {
+		dist = distance(objectsList[o1], objectsList[o2]);
+		if ((dist>0) & (dist < minPerception)) {
+			sum = addVec(sum, objectsList[o2].pos);
+			numNeighbors++;
+		}
+	}
+	if (numNeighbors) {
+		sum = divVecByScalar(sum, numNeighbors);
+		sum = subVec(sum, objectsList[o1].pos);
+		sum = normalize(sum);
+		sum = mulVecByScalar(sum, maxSpeed);
+		steer = subVec(sum, objectsList[o1].velocity);
+		steer = limitForce(steer, cohesionFactor);
+	}
+	return(steer);
 }
 
 
@@ -662,6 +742,22 @@ void limitSpeed(int i) {
 }
 
 
+vector computeAcceleration(int i) {
+	vector separate, align, cohes, acc;
+	acc.x = 0; acc.y = 0; acc.z = 0;
+
+	separate = separation(i);
+	align = alignement(i);
+	cohes = cohesion(i);
+
+	acc = addVec(acc, separate);
+	acc = addVec(acc, align);
+	acc = addVec(acc, cohes);
+
+	return(acc);
+}
+
+
 void addEltPath(int o1) {
 	int i = 0;
 	vector *temp = calloc(maxPathLength, sizeof(vector));
@@ -684,18 +780,18 @@ void update(int value) {
 	int i=0;
 	vector acc, col;
 	pathLength ++;
-
 	for (i=0; i<value; i++) {
 		col = meanColor(i);
 		objectsList[i].color.x = col.x;
 		objectsList[i].color.y = col.y;
 		objectsList[i].color.z = col.z;
-		acc = freeFall(i);
+		acc = computeAcceleration(i);
 		objectsList[i].velocity = addVec(objectsList[i].velocity, acc);
+		limitSpeed(i);
 		objectsList[i].pos = addVec(objectsList[i].pos, objectsList[i].velocity);
-		keepWithinBounds1(i);
-		//keepWithinBounds2(i);
 		addEltPath(i);
+		//keepWithinBounds1(i);
+		keepWithinBounds2(i);
 	}
 	glutPostRedisplay();
 	glutTimerFunc(dt, update, sampleSize);
@@ -782,6 +878,8 @@ void glmain(int argc, char *argv[]) {
 
 void populateObjects(void) {
 	int i = 0;
+	double v = 0;
+	v = maxSpeed / 2.0;
 	for (i=0; i<sampleSize; i++) {
 		objectsList[i].id = i;
 		objectsList[i].selected = 0;
@@ -791,11 +889,10 @@ void populateObjects(void) {
 		objectsList[i].pos.x = generatePosRandom();
 		objectsList[i].pos.y = generatePosRandom();
 		objectsList[i].pos.z = generatePosRandom();
-		objectsList[i].velocity.x = generateRangeRandom(-1.00, 1.00);
-		objectsList[i].velocity.y = generateRangeRandom(-1.00, 1.00);
-		objectsList[i].velocity.z = 0;
-		objectsList[i].mass = generateRangeRandom(minWeight, maxWeight);
-		objectsList[i].radius = pow(((3.0 * objectsList[i].mass) / (4.0 * pi * density)), (1.0/3.0));
+		objectsList[i].velocity.x = generateRangeRandom(-v, v);
+		objectsList[i].velocity.y = generateRangeRandom(-v, v);
+		objectsList[i].velocity.z = generateRangeRandom(-v, v);
+		objectsList[i].radius = 2.0;
 		objectsList[i].path = calloc(maxPathLength, sizeof(vector));
 		objectsList[i].path[pathLength] = objectsList[i].pos;
 	}

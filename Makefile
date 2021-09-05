@@ -25,7 +25,11 @@ MATH_FLAGS= -lm
 PNG_FLAGS= -lpng
 GMP_FLAGS= -lgmp
 
-all: dest_sys gravity3d universe3d
+all: dest_sys gravity3d universe3d boids3d
+
+boids3d: boids3d.c
+	$(COMPIL) $(CFLAGS) $(IFLAGSDIR) $(LFLAGSDIR) $(MATH_FLAGS) $(GL_FLAGS) $(PNG_FLAGS) $< -o $@
+	@$(STRIP) $@
 
 gravity3d: gravity3d.c
 	$(COMPIL) $(CFLAGS) $(IFLAGSDIR) $(LFLAGSDIR) $(MATH_FLAGS) $(GL_FLAGS) $(PNG_FLAGS) $< -o $@
@@ -41,3 +45,4 @@ dest_sys:
 clean:
 	@rm -f gravity3d
 	@rm -f universe3d
+	@rm -f boids3d

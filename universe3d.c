@@ -120,7 +120,7 @@ void help(void) {
 	printf("\t't' to display selected planet trace or not\n");
 	printf("\t'a' to display trace of all planets\n");
 	printf("Mouse usage:\n");
-	printf("\t'LEFT CLICK' to to select a planet\n");
+	printf("\t'LEFT CLICK' to select a planet\n");
 	printf("\n");
 }
 

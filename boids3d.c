@@ -124,7 +124,7 @@ void help(void) {
 	printf("\t't' to display selected boid trace or not\n");
 	printf("\t'a' to display trace of all boids\n");
 	printf("Mouse usage:\n");
-	printf("\t'LEFT CLICK' to to select a boid\n");
+	printf("\t'LEFT CLICK' to select a boid\n");
 	printf("\n");
 }
 

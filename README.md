@@ -1,23 +1,29 @@
-# Gravity
-Simulate gravity in 3-D world
+# Gravity3d
+Simulates gravity in 3D world
+
+# Universe3d
+Simulates moving planets through Newton's laws in 3D world
+
+# Boids3d
+Simulates moving boids through Craig W. Reynolds's laws in 3D world
 
 --
 
-To compile both programs `make`
+To compile those programs `make`
 
 --
 
-Some key shortcut avalaible on both programs:
-
-- rotate continuously or not: `r`
-- turn left or right: `KEY-LEFT` or `KEY-RIGHT`
-- turn up or down: `KEY-UP` or `KEY-DOWN`
-- move left or right: `x` or `X`
-- move up or down: `y` or `Y`
-- fullscreen: `f`
-- display axe or not: `d`
-- display trace of selected object: `t`
-- display all traces or not: `a`
-- zoom in or out: `z` or `Z`
-- screen capture: `p`
-
+Key usage:
+	'ESC' key to quit
+	'UP', 'DOWN', 'LEFT' and 'RIGHT' keys to rotate manually
+	'r' to rotate continuously
+	'x' and 'X' to move to right and left
+	'y' and 'Y' to move to top and bottom
+	'z' and 'Z' to zoom in or out
+	'f' to switch to full screen
+	'p' to take a screenshot
+	'd' to display axe or not
+	't' to display selected object trace or not
+	'a' to display trace of all object
+Mouse usage:
+	'LEFT CLICK' to select an object

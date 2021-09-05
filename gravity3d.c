@@ -117,10 +117,10 @@ void help(void) {
 	printf("\t'f' to switch to full screen\n");
 	printf("\t'p' to take a screenshot\n");
 	printf("\t'd' to display axe or not\n");
-	printf("\t't' to display selected planet trace or not\n");
-	printf("\t'a' to display trace of all planets\n");
+	printf("\t't' to display selected object trace or not\n");
+	printf("\t'a' to display trace of all objects\n");
 	printf("Mouse usage:\n");
-	printf("\t'LEFT CLICK' to to select a planet\n");
+	printf("\t'LEFT CLICK' to select an object\n");
 	printf("\n");
 }
 
@@ -592,9 +592,9 @@ void onTimer(int event) {
 }
 
 
-vector freeFall(int p1) {
+vector freeFall(int i) {
 	vector result;
-	result.x=0.0; result.y=0.0; result.z=0.0;
+	result.x=0.0+i+cos(g); result.y=0.0; result.z=0.0;
 	return(result);
 }
 

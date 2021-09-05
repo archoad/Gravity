@@ -39,6 +39,7 @@ universe3d: universe3d.c
 	$(COMPIL) $(CFLAGS) $(IFLAGSDIR) $(LFLAGSDIR) $(MATH_FLAGS) $(GL_FLAGS) $(PNG_FLAGS) $< -o $@
 	@$(STRIP) $@
 
+
 dest_sys:
 	@echo "Destination system:" $(UNAME_S)
 
@@ -46,3 +47,4 @@ clean:
 	@rm -f gravity3d
 	@rm -f universe3d
 	@rm -f boids3d
+	@rm -f *.o

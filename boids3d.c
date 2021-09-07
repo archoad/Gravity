@@ -54,7 +54,6 @@ static short winSizeW = 1200,
 
 static int textList = 0,
 	cpt = 0,
-	background = 0,
 	pathLength = 0,
 	maxPathLength = 50,
 	sampleSize = 1500;
@@ -96,15 +95,6 @@ typedef struct _objects {
 static objects objectsList[MAXOBJECTS];
 
 
-
-
-void usage(void) {
-	couleur("31");
-	printf("Michel Dubois -- boids3d -- (c) 2021\n\n");
-	couleur("0");
-	printf("Syntaxe: boids3d <background color>\n");
-	printf("\t<background color> -> 'white' or 'black'\n");
-}
 
 
 void help(void) {
@@ -296,11 +286,7 @@ void drawString(float x, float y, float z, char *text) {
 	unsigned i = 0;
 	glPushMatrix();
 	glLineWidth(1.0);
-	if (background){ // White background
-		glColor3f(0.0, 0.0, 0.0);
-	} else { // Black background
-		glColor3f(1.0, 1.0, 1.0);
-	}
+	glColor3f(1.0, 1.0, 1.0);
 	glTranslatef(x, y, z);
 	glScalef(0.008, 0.008, 0.008);
 	for(i=0; i < strlen(text); i++) {
@@ -365,6 +351,7 @@ void display(void) {
 	glEnable(GL_LIGHT1);
 
 	if (axe) { drawAxes(); }
+
 	for (i=0; i<sampleSize; i++) {
 		drawObject(objectsList[i], i);
 		if (trace) {
@@ -799,11 +786,7 @@ void update(int value) {
 
 
 void init(void) {
-	if (background){ // White background
-		glClearColor(1.0, 1.0, 1.0, 1.0);
-	} else { // Black background
-		glClearColor(0.1, 0.1, 0.1, 1.0);
-	}
+	glClearColor(0.1, 0.1, 0.1, 1.0); // background color
 
 	glEnable(GL_LIGHTING);
 
@@ -900,20 +883,9 @@ void populateObjects(void) {
 
 
 int main(int argc, char *argv[]) {
-	switch (argc) {
-		case 2:
-			if (!strncmp(argv[1], "white", 5)) {
-				background = 1;
-			}
-			help();
-			srand(time(NULL));
-			populateObjects();
-			glmain(argc, argv);
-			exit(EXIT_SUCCESS);
-			break;
-		default:
-			usage();
-			exit(EXIT_FAILURE);
-			break;
-	}
+	help();
+	srand(time(NULL));
+	populateObjects();
+	glmain(argc, argv);
+	exit(EXIT_SUCCESS);
 }

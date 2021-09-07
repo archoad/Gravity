@@ -42,14 +42,13 @@ static short winSizeW = 1200,
 	allTraces = 1,
 	rotate = 1,
 	axe = 1,
-	concentration = 100,
+	concentration = 80,
 	dt = 5; // in milliseconds
 
 static int textList = 0,
 	cpt = 0,
-	background = 0,
 	pathLength = 0,
-	maxPathLength = 50,
+	maxPathLength = 150,
 	sampleSize = 1500;
 
 static float fps = 0.0,
@@ -62,13 +61,12 @@ static float fps = 0.0,
 	prevx = 0.0,
 	prevy = 0.0;
 
-static double minDistance = 4.0,
-	maxSpeed = 2.0,
-	maxWeight = 1.0e10,
-	minWeight = 1.0e6,
-	density = 1.0e8,
+static double minDistance = 2.0,
+	maxWeight = 50,
+	minWeight = 5,
+	density = 1.5,
 	pi = 3.14159265358979323846,
-	g = 6.67428e-11;
+	g = -9.8;
 
 typedef struct _vector {
 	double x, y, z;
@@ -90,17 +88,6 @@ typedef struct _objects {
 static objects objectsList[MAXOBJECTS];
 
 
-
-
-
-
-void usage(void) {
-	couleur("31");
-	printf("Michel Dubois -- gravity3d -- (c) 2013\n\n");
-	couleur("0");
-	printf("Syntaxe: gravity3d <background color>\n");
-	printf("\t<background color> -> 'white' or 'black'\n");
-}
 
 
 void help(void) {
@@ -292,11 +279,7 @@ void drawString(float x, float y, float z, char *text) {
 	unsigned i = 0;
 	glPushMatrix();
 	glLineWidth(1.0);
-	if (background){ // White background
-		glColor3f(0.0, 0.0, 0.0);
-	} else { // Black background
-		glColor3f(1.0, 1.0, 1.0);
-	}
+	glColor3f(1.0, 1.0, 1.0); // Black background
 	glTranslatef(x, y, z);
 	glScalef(0.008, 0.008, 0.008);
 	for(i=0; i < strlen(text); i++) {
@@ -592,13 +575,6 @@ void onTimer(int event) {
 }
 
 
-vector freeFall(int i) {
-	vector result;
-	result.x=0.0+i+cos(g); result.y=0.0; result.z=0.0;
-	return(result);
-}
-
-
 vector meanColor(int o1) {
 	int o2 = 0,
 		numNeighbors = 0;
@@ -624,7 +600,7 @@ vector meanColor(int o1) {
 }
 
 
-void keepWithinBounds1(int i) {
+void keepWithinBounds(int i) {
 	double highLimit = 150.0,
 		lowLimit = -150.0;
 	if ((objectsList[i].pos.x >= highLimit) | (objectsList[i].pos.x < lowLimit)) {
@@ -633,32 +609,11 @@ void keepWithinBounds1(int i) {
 	if ((objectsList[i].pos.y >= highLimit) | (objectsList[i].pos.y < lowLimit)) {
 		objectsList[i].velocity.y = -1 * objectsList[i].velocity.y;
 	}
+	/*
 	if ((objectsList[i].pos.z >= highLimit) | (objectsList[i].pos.z < lowLimit)) {
 		objectsList[i].velocity.z = -1 * objectsList[i].velocity.z;
 	}
-}
-
-
-void keepWithinBounds2(int i) {
-	double highLimit = 150.0,
-		lowLimit = -150.0;
-	if (objectsList[i].pos.x > highLimit) { objectsList[i].pos.x = lowLimit; }
-	if (objectsList[i].pos.x < lowLimit) { objectsList[i].pos.x = highLimit; }
-	if (objectsList[i].pos.y > highLimit) { objectsList[i].pos.y = lowLimit; }
-	if (objectsList[i].pos.y < lowLimit) { objectsList[i].pos.y = highLimit; }
-	if (objectsList[i].pos.z > highLimit) { objectsList[i].pos.z = lowLimit; }
-	if (objectsList[i].pos.z < lowLimit) { objectsList[i].pos.z = highLimit; }
-}
-
-
-void limitSpeed(int i) {
-	double normal = 0;
-	normal = magnitude(objectsList[i].velocity);
-	if (normal > maxSpeed) {
-		objectsList[i].velocity.x = (objectsList[i].velocity.x / normal) * maxSpeed;
-		objectsList[i].velocity.y = (objectsList[i].velocity.y / normal) * maxSpeed;
-		objectsList[i].velocity.z = (objectsList[i].velocity.z / normal) * maxSpeed;
-	}
+	*/
 }
 
 
@@ -682,7 +637,12 @@ void addEltPath(int o1) {
 
 void update(int value) {
 	int i=0;
-	vector acc, col;
+	double force=0.0, dist=0.0, lowLimit=-150.0;
+	vector acc, col, diff, ground;
+	acc.x=0.0; acc.y=0.0; acc.z=0.0;
+	ground.x = objectsList[i].pos.x;
+	ground.y = objectsList[i].pos.y;
+	ground.z = lowLimit;
 	pathLength ++;
 
 	for (i=0; i<value; i++) {
@@ -690,11 +650,19 @@ void update(int value) {
 		objectsList[i].color.x = col.x;
 		objectsList[i].color.y = col.y;
 		objectsList[i].color.z = col.z;
-		acc = freeFall(i);
+
+		diff = subVec(ground, objectsList[i].pos);
+		dist = magnitude(diff);
+		if ((dist > 0) & (objectsList[i].pos.z > lowLimit)) {
+			force = (g * objectsList[i].mass) / (dist * dist);
+			acc.z = force;
+		} else {
+			objectsList[i].velocity.z = 0;
+			objectsList[i].pos.z = lowLimit;
+		}
 		objectsList[i].velocity = addVec(objectsList[i].velocity, acc);
 		objectsList[i].pos = addVec(objectsList[i].pos, objectsList[i].velocity);
-		keepWithinBounds1(i);
-		//keepWithinBounds2(i);
+		keepWithinBounds(i);
 		addEltPath(i);
 	}
 	glutPostRedisplay();
@@ -703,11 +671,7 @@ void update(int value) {
 
 
 void init(void) {
-	if (background){ // White background
-		glClearColor(1.0, 1.0, 1.0, 1.0);
-	} else { // Black background
-		glClearColor(0.1, 0.1, 0.1, 1.0);
-	}
+	glClearColor(0.1, 0.1, 0.1, 1.0); // Black background
 
 	glEnable(GL_LIGHTING);
 
@@ -791,9 +755,9 @@ void populateObjects(void) {
 		objectsList[i].pos.x = generatePosRandom();
 		objectsList[i].pos.y = generatePosRandom();
 		objectsList[i].pos.z = generatePosRandom();
-		objectsList[i].velocity.x = generateRangeRandom(-1.00, 1.00);
-		objectsList[i].velocity.y = generateRangeRandom(-1.00, 1.00);
-		objectsList[i].velocity.z = 0;
+		objectsList[i].velocity.x = generateRangeRandom(-0.4, 0.4);
+		objectsList[i].velocity.y = generateRangeRandom(-0.4, 0.4);
+		objectsList[i].velocity.z = generateRangeRandom(0.5, 0.8);
 		objectsList[i].mass = generateRangeRandom(minWeight, maxWeight);
 		objectsList[i].radius = pow(((3.0 * objectsList[i].mass) / (4.0 * pi * density)), (1.0/3.0));
 		objectsList[i].path = calloc(maxPathLength, sizeof(vector));
@@ -803,20 +767,9 @@ void populateObjects(void) {
 
 
 int main(int argc, char *argv[]) {
-	switch (argc) {
-		case 2:
-			if (!strncmp(argv[1], "white", 5)) {
-				background = 1;
-			}
-			help();
-			srand(time(NULL));
-			populateObjects();
-			glmain(argc, argv);
-			exit(EXIT_SUCCESS);
-			break;
-		default:
-			usage();
-			exit(EXIT_FAILURE);
-			break;
-	}
+	help();
+	srand(time(NULL));
+	populateObjects();
+	glmain(argc, argv);
+	exit(EXIT_SUCCESS);
 }

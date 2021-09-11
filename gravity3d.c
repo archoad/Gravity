@@ -42,14 +42,14 @@ static short winSizeW = 1200,
 	allTraces = 1,
 	rotate = 1,
 	axe = 1,
-	concentration = 80,
+	concentration = 20,
 	dt = 5; // in milliseconds
 
 static int textList = 0,
 	cpt = 0,
 	pathLength = 0,
-	maxPathLength = 150,
-	sampleSize = 1500;
+	maxPathLength = 50,
+	sampleSize = 1200;
 
 static float fps = 0.0,
 	rotx = -80.0,
@@ -61,12 +61,12 @@ static float fps = 0.0,
 	prevx = 0.0,
 	prevy = 0.0;
 
-static double minDistance = 2.0,
-	maxWeight = 50,
-	minWeight = 5,
-	density = 1.5,
+static double minDistance = 1.0,
+	maxWeight = 15000,
+	minWeight = 6000,
+	density = 150.0,
 	pi = 3.14159265358979323846,
-	g = -9.8;
+	g = 6.674e-11;
 
 typedef struct _vector {
 	double x, y, z;
@@ -609,11 +609,9 @@ void keepWithinBounds(int i) {
 	if ((objectsList[i].pos.y >= highLimit) | (objectsList[i].pos.y < lowLimit)) {
 		objectsList[i].velocity.y = -1 * objectsList[i].velocity.y;
 	}
-	/*
 	if ((objectsList[i].pos.z >= highLimit) | (objectsList[i].pos.z < lowLimit)) {
 		objectsList[i].velocity.z = -1 * objectsList[i].velocity.z;
 	}
-	*/
 }
 
 
@@ -637,12 +635,9 @@ void addEltPath(int o1) {
 
 void update(int value) {
 	int i=0;
-	double force=0.0, dist=0.0, lowLimit=-150.0;
+	double dist=0.0, lowLimit=-150.0, groundMass = 0.0;
 	vector acc, col, diff, ground;
-	acc.x=0.0; acc.y=0.0; acc.z=0.0;
-	ground.x = objectsList[i].pos.x;
-	ground.y = objectsList[i].pos.y;
-	ground.z = lowLimit;
+	groundMass = maxWeight * 100000.0;
 	pathLength ++;
 
 	for (i=0; i<value; i++) {
@@ -651,16 +646,21 @@ void update(int value) {
 		objectsList[i].color.y = col.y;
 		objectsList[i].color.z = col.z;
 
+		acc.x=0.0; acc.y=0.0; acc.z=0.0;
+		ground.x = objectsList[i].pos.x;
+		ground.y = objectsList[i].pos.y;
+		ground.z = lowLimit;
 		diff = subVec(ground, objectsList[i].pos);
-		dist = magnitude(diff);
-		if ((dist > 0) & (objectsList[i].pos.z > lowLimit)) {
-			force = (g * objectsList[i].mass) / (dist * dist);
-			acc.z = force;
-		} else {
-			objectsList[i].velocity.z = 0;
-			objectsList[i].pos.z = lowLimit;
+		if (diff.z < 0) {
+			dist = magnitude(diff);
+			if (dist > 0) {
+				acc.z = (g * objectsList[i].mass * groundMass) / (dist * dist);
+				if (acc.z < 1) {
+					acc.z = -acc.z;
+					objectsList[i].velocity = addVec(objectsList[i].velocity, acc);
+				}
+			}
 		}
-		objectsList[i].velocity = addVec(objectsList[i].velocity, acc);
 		objectsList[i].pos = addVec(objectsList[i].pos, objectsList[i].velocity);
 		keepWithinBounds(i);
 		addEltPath(i);
@@ -755,9 +755,9 @@ void populateObjects(void) {
 		objectsList[i].pos.x = generatePosRandom();
 		objectsList[i].pos.y = generatePosRandom();
 		objectsList[i].pos.z = generatePosRandom();
-		objectsList[i].velocity.x = generateRangeRandom(-0.4, 0.4);
-		objectsList[i].velocity.y = generateRangeRandom(-0.4, 0.4);
-		objectsList[i].velocity.z = generateRangeRandom(0.5, 0.8);
+		objectsList[i].velocity.x = generateRangeRandom(-1.0, 1.0);
+		objectsList[i].velocity.y = generateRangeRandom(-1.0, 1.0);
+		objectsList[i].velocity.z = generateRangeRandom(0.6, 1.6);
 		objectsList[i].mass = generateRangeRandom(minWeight, maxWeight);
 		objectsList[i].radius = pow(((3.0 * objectsList[i].mass) / (4.0 * pi * density)), (1.0/3.0));
 		objectsList[i].path = calloc(maxPathLength, sizeof(vector));

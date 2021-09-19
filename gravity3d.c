@@ -42,7 +42,7 @@ static short winSizeW = 1200,
 	allTraces = 1,
 	rotate = 1,
 	axe = 1,
-	concentration = 20,
+	concentration = 10,
 	dt = 5; // in milliseconds
 
 static int textList = 0,
@@ -635,17 +635,14 @@ void addEltPath(int o1) {
 
 void update(int value) {
 	int i=0;
-	double dist=0.0, lowLimit=-150.0, groundMass = 0.0;
-	vector acc, col, diff, ground;
+	double dist=0.0,
+		lowLimit=-150.0,
+		groundMass = 0.0;
+	vector acc, diff, ground;
 	groundMass = maxWeight * 100000.0;
 	pathLength ++;
 
 	for (i=0; i<value; i++) {
-		col = meanColor(i);
-		objectsList[i].color.x = col.x;
-		objectsList[i].color.y = col.y;
-		objectsList[i].color.z = col.z;
-
 		acc.x=0.0; acc.y=0.0; acc.z=0.0;
 		ground.x = objectsList[i].pos.x;
 		ground.y = objectsList[i].pos.y;
@@ -662,6 +659,7 @@ void update(int value) {
 			}
 		}
 		objectsList[i].pos = addVec(objectsList[i].pos, objectsList[i].velocity);
+
 		keepWithinBounds(i);
 		addEltPath(i);
 	}
